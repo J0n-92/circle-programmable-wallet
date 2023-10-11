@@ -147,6 +147,7 @@ struct ContentView: View {
                         registerButton
                         Spacer()
                     case .Home:
+                    Text("Avalanche FUJI TestNet").font(.title)
                         Text("Wallet Address \(wallet?.address ?? "No Address") ").font(.title2).onTapGesture {
                             UIPasteboard.general.string = wallet?.address ?? "No Address"
                             showToast(.success, message: "Address Copied")
