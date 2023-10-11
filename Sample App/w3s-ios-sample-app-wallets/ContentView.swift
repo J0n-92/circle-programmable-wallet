@@ -15,41 +15,240 @@
 import SwiftUI
 import CircleProgrammableWalletSDK
 
+struct Wallet: Codable{
+   let id: String
+    let state: String
+    let walletSetId: String
+    let  custodyType: String
+    let userId: String
+    let address: String
+    let blockchain: String
+    let accountType: String
+    let updateDate: String
+    let createDate: String
+}
+
+struct ChallengeId: Decodable{
+    let challengeId: String
+}
+
+enum AppState {
+    case idle
+    case loggingIn
+    case regsitering
+    case sendingTokens
+}
+
+enum Screens {
+    case Login
+    case Home
+    case SendToken
+    case Transactions
+    case Transction
+}
+
+enum TokenOptions: CaseIterable, Identifiable, CustomStringConvertible{
+    case FujiAvax
+    case USDC
+
+    var id: Self { self }
+    
+    var description: String{
+        switch self {
+        case .FujiAvax:
+            return "Fuji AVAX"
+        case .USDC:
+            return "USDC"
+        }
+    }
+    
+    var tokenId:String{
+        switch self {
+        case .FujiAvax:
+            return FujiAvaxTokenAddress
+        case .USDC:
+            return UsdcTokenAddress
+        }
+    }
+}
+
+let FujiAvaxTokenAddress = "87a5c41c-fcb4-5973-8c66-72e2ed851ab8"
+let UsdcTokenAddress = "ff47a560-9795-5b7c-adfc-8f47dad9e06a"
+
+struct Transaction: Identifiable, Decodable{
+    let id: String
+    let amounts: [String]
+
+    let sourceAddress: String
+    let state: String
+    let updateDate: String
+    let transactionType: String
+
+    let createDate: String
+    let destinationAddress : String
+    let networkFee : String
+    let tokenId: String
+    let blockchain: String
+}
+
+let defaultTransaction : Transaction = Transaction(
+    id: "Default"
+    , amounts: ["Default"]
+    , sourceAddress: "Default"
+    , state: "Default"
+    , updateDate: "Default"
+    , transactionType: "Default"
+    , createDate: "Default"
+    , destinationAddress : "Default"
+    , networkFee : "Default"
+    , tokenId: "Default"
+    , blockchain: "Default"
+)
+
 struct ContentView: View {
-
+    
     let adapter = WalletSdkAdapter()
-
+    
     let endPoint = "https://enduser-sdk.circle.com/v1/w3s"
-    @State var appId = "your-app-id" // put your App ID here programmatically
-
+    
+    @State private var selectedOption: TokenOptions = .USDC
+    @State var appId = "" // put your App ID here programmatically
+    @State var apiKey = ""
+    @State var userId = "" // Enter userID
     @State var userToken = ""
     @State var encryptionKey = ""
     @State var challengeId = ""
-
+    @State var currentScreen : Screens = .Login
     @State var showToast = false
     @State var toastMessage: String?
     @State var toastConfig: Toast.Config = .init()
-
+    @State var wallet: Wallet? = nil
+    @State var appState : AppState = .idle
+    @State var usdcBalance: String =  "0"
+    @State var avaxBalance: String =  "0"
+    @State var sendAmount: String  = "0"
+    @State var destinationAddress: String = ""
+    @State var transactionHistory: [Transaction] = [ ]
+    @State var selectedTransaction: Transaction = defaultTransaction
+    
     var body: some View {
         VStack {
-            List {
-                titleText
-                sectionEndPoint
-                sectionInputField("App ID", binding: $appId)
-                sectionInputField("User Token", binding: $userToken)
-                sectionInputField("Encryption Key", binding: $encryptionKey)
-                sectionInputField("Challenge ID", binding: $challengeId)
-                sectionExecuteButton
-
-                Spacer()
-//                TestButtons
+            HStack {
+                Image("58")
+                Text("Circle").font(.title)
+            }
+        List {
+                switch  currentScreen{
+                    case .Login:
+                        titleText
+                        sectionInputField("User ID", binding: $userId)
+                        sectionInputField("API Key", binding: $apiKey)
+                        loginButton
+                        registerButton
+                        Spacer()
+                    case .Home:
+                        Text("Wallet Address \(wallet?.address ?? "No Address") ").font(.title2).onTapGesture {
+                            UIPasteboard.general.string = wallet?.address ?? "No Address"
+                            showToast(.success, message: "Address Copied")
+                        }.bold()
+                        Text("Token Balance").font(.body).bold()
+                        Text("USDC: \(usdcBalance)").font(.body)
+                        Text("AVAX-Fuji: \(avaxBalance)").font(.body)
+                        sendButton
+                        transactionHistoryButton
+                        logutButton
+                    case .SendToken:
+                        Text( "Send Tokens" ).font(.title2)
+                        Text("USDC Balance: \(usdcBalance) USDC").font(.body)
+                        Text("Fuji Avax Balance: \(avaxBalance) AVAX").font(.body)
+                        Picker("Select which token to send", selection: $selectedOption) {
+                                        ForEach(TokenOptions.allCases) { option in
+                                            Text(String(describing: option))
+                                        }
+                                    }
+                                    .pickerStyle(MenuPickerStyle())
+                        sectionInputField("Destination Address", binding: $destinationAddress )
+                        sectionInputField("Amount", binding: $sendAmount )
+                        sendTokensButton
+                        homeButton
+                        logutButton
+                    case .Transactions:
+                        Text( "Transactions" ).font(.title2)
+                        List(transactionHistory){
+                            transaction in
+                            VStack(alignment: .leading) {
+                                HStack{
+                                    VStack(alignment: .leading){
+                                        Text(transaction.transactionType).font(.body)
+                                        let token = transaction.tokenId == FujiAvaxTokenAddress ? "Avalanche-Fuji" : "USDC"
+                                        Text(token).font(.body)
+                                        let textColor = transaction.state == "COMPLETE" ? Color.green : Color.red
+                                        Text(transaction.state).font(.body).foregroundColor(textColor)
+                                    }.padding(EdgeInsets(top: 0, leading: 0, bottom: 0,trailing:100))
+                                    
+                                    Text(transaction.amounts[0]).font(.body).alignmentGuide(.trailing) { _ in 0 }
+                                }
+                            }.onTapGesture {
+                                selectedTransaction = transaction
+                                currentScreen = .Transction
+                            }
+                        }.frame(height: 500)
+                        homeButton
+                        logutButton
+                    case .Transction:
+                        Text( "View Transaction" ).font(.title2)
+                        ZStack{
+                            VStack (alignment: .leading){
+                                Text("Source Address:").bold().font(.body)
+                                Text(selectedTransaction.sourceAddress).font(.body)
+                                VStack (alignment: .leading){
+                                    Text("Destination Address:").bold().font(.body)
+                                    Text(selectedTransaction.destinationAddress).font(.body)
+                                }
+                                
+                                HStack{
+                                    Text("State: ").bold().font(.body)
+                                    Text(selectedTransaction.state).font(.body)
+                                }
+                                HStack {
+                                    Text("Amount: ").bold().font(.body)
+                                    Text(selectedTransaction.amounts[0]).font(.body)
+                                }
+                                HStack {
+                                    Text("Transaction Type: ").bold().font(.body)
+                                    Text(selectedTransaction.transactionType).font(.body)
+                                }
+                                HStack{
+                                    let token = selectedTransaction.tokenId == FujiAvaxTokenAddress ? "Avalanche-Fuji" : "USDC"
+                                    Text("Token: ").bold().font(.body)
+                                    Text(token).font(.body)
+                                }
+                                HStack{
+                                    Text("Blockchain: ").bold().font(.body)
+                                    Text(selectedTransaction.blockchain).font(.body)
+                                }
+                                HStack{
+                                    Text("Created at: ").bold().font(.body)
+                                    Text(selectedTransaction.createDate).font(.body)
+                                }
+                                HStack{
+                                    Text("Update at: ").bold().font(.body)
+                                    Text(selectedTransaction.updateDate).font(.body)
+                                } 
+                            }.padding()
+                                .background(Color.white)
+                            RoundedRectangle(cornerRadius: 10) // You can adjust the corner radius as needed
+                                .stroke(Color.black, lineWidth: 2) // Border color and width
+                                .padding(5) // Adjust the padding to control the border distance
+                        }
+                        transactionBackButton       
+                }
             }
             versionText
         }
         .scrollContentBackground(.hidden)
         .onAppear {
             self.adapter.initSDK(endPoint: endPoint, appId: appId)
-
             if let storedAppId = self.adapter.storedAppId, !storedAppId.isEmpty {
                 self.appId = storedAppId
             }
@@ -57,7 +256,16 @@ struct ContentView: View {
         .onChange(of: appId) { newValue in
             self.adapter.updateEndPoint(endPoint, appId: newValue)
             self.adapter.storedAppId = newValue
-        }
+        }.onChange(of: currentScreen, perform: { newValue in
+            if(newValue != .Login ){
+                Task{
+                    await getWalletsList()
+                    await getWalletBalances()
+                    appState = .idle
+                }
+            }
+            
+        })
         .toast(message: toastMessage ?? "",
                isShowing: $showToast,
                config: toastConfig)
@@ -88,20 +296,134 @@ struct ContentView: View {
         }
     }
 
-    var sectionExecuteButton: some View {
+    var loginButton: some View {
         Button {
-            guard !userToken.isEmpty else { showToast(.general, message: "User Token is Empty"); return }
-            guard !encryptionKey.isEmpty else { showToast(.general, message: "Encryption Key is Empty"); return }
-            guard !challengeId.isEmpty else { showToast(.general, message: "Challenge ID is Empty"); return }
-            executeChallenge(userToken: userToken, encryptionKey: encryptionKey, challengeId: challengeId)
+            guard !userId.isEmpty else { showToast(.general, message: "User ID is Empty"); return }
+            Task{await userLogin()}
 
         } label: {
-            Text("Execute")
+            let message = appState == .loggingIn ? "Logging In": "Login"
+            Text(message)
+                .frame(maxWidth: .infinity)
+        }.disabled(appState != .idle)
+        .buttonStyle(.borderedProminent)
+        .listRowSeparator(.hidden)
+    }
+    var registerButton: some View {
+        Button {
+            guard !userId.isEmpty else { showToast(.general, message: "User ID is Empty"); return }
+            Task{
+                await  userRegistration()
+            }
+
+        } label: {
+            let message = appState == .regsitering ? "Registering User": "Register"
+            Text(message)
+                .frame(maxWidth: .infinity)
+        }.disabled(appState != .idle)
+        .buttonStyle(.borderedProminent)
+        .listRowSeparator(.hidden)
+    }
+    var logutButton: some View {
+        Button {
+            currentScreen = .Login
+             userToken = ""
+            encryptionKey = ""
+            challengeId = ""
+            avaxBalance = "0"
+            usdcBalance = "0"
+            wallet = nil
+            userId = ""
+            
+        } label: {
+            Text("Log out")
                 .frame(maxWidth: .infinity)
         }
         .buttonStyle(.borderedProminent)
         .listRowSeparator(.hidden)
     }
+    
+    var homeButton: some View {
+        Button {
+            currentScreen = .Home
+           
+            
+        } label: {
+            Text("Home")
+                .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.borderedProminent)
+        .listRowSeparator(.hidden)
+    }
+    
+    var transactionBackButton: some View {
+        Button {
+            currentScreen = .Transactions
+            selectedTransaction = defaultTransaction
+            
+        } label: {
+            Text("Back")
+                .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.borderedProminent)
+        .listRowSeparator(.hidden)
+    }
+    
+    var sendButton: some View {
+        Button {            
+            currentScreen = .SendToken
+            
+        } label: {
+            Text("Send")
+                .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.borderedProminent)
+        .listRowSeparator(.hidden)
+    }
+    
+    var transactionHistoryButton: some View {
+        Button {
+            Task {
+                await getTransactionHistory( )
+            }
+            currentScreen = .Transactions
+        } label: {
+            Text("View Transactions")
+                .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.borderedProminent)
+        .listRowSeparator(.hidden)
+    }
+    
+    var sendTokensButton: some View {
+        Button {
+            let isAllowed = containsOnlyNumbersAndDecimalPoint(sendAmount)
+            guard isAllowed else { showToast(.general, message: "Invalid Format"); return }
+            guard !sendAmount.isEmpty else { showToast(.general, message: "send amount is Empty"); return }
+            let sendAmountFloat = Float(sendAmount) ?? 0
+            let usdcBalanceFloat = Float(usdcBalance) ?? 0
+            let avaxBalanceFloat = Float(avaxBalance) ?? 0
+            if ( selectedOption == .USDC ) {
+                guard sendAmountFloat<usdcBalanceFloat else { showToast(.failure, message: "Insufficient Balance"); return }
+            }
+            if ( selectedOption == .FujiAvax ) {
+                let allowedTransferBalance = avaxBalanceFloat * 0.9
+                guard sendAmountFloat < allowedTransferBalance else { showToast(.failure, message: "Insufficient Balance"); return }
+            }
+            appState = .sendingTokens
+            Task {
+                await createChallengeToSendTokens( )
+                executeChallenge(userToken: userToken, encryptionKey: encryptionKey, challengeId: challengeId)
+            }
+        } label: {
+            Text("Send Tokens")
+                .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.borderedProminent)
+        .listRowSeparator(.hidden)
+    }
+    
+    
 }
 
 extension ContentView {
@@ -127,19 +449,31 @@ extension ContentView {
     }
 
     func executeChallenge(userToken: String, encryptionKey: String, challengeId: String) {
-        WalletSdk.shared.execute(userToken: userToken,
-                                 encryptionKey: encryptionKey,
-                                 challengeIds: [challengeId]) { response in
+        let _ = WalletSdk.Configuration.init(endPoint: endPoint, appId: appId)
+        WalletSdk.shared.execute(userToken: userToken,encryptionKey: encryptionKey,challengeIds: [challengeId]) { response in
             switch response.result {
-            case .success(let result):
-                let challengeStatus = result.status.rawValue
-                let challeangeType = result.resultType.rawValue
-                showToast(.success, message: "\(challeangeType) - \(challengeStatus)")
+                case .success(let result):
+                    let challengeStatus = result.status.rawValue
+                    let challeangeType = result.resultType.rawValue
+                    showToast(.success, message: "\(challeangeType) - \(challengeStatus)")
+                    self.challengeId = ""
+                    let addOnTime =  3.0 // Add 3 seconds delay
+                    let delayTime = DispatchTime.now() + addOnTime
+                    DispatchQueue.main.asyncAfter(deadline: delayTime) {
+                        currentScreen = .Home
+                        if ( currentScreen == .SendToken ){
+                            sendAmount = "0"
+                        }
+                    }
 
-            case .failure(let error):
-                showToast(.failure, message: "Error: " + error.displayString)
-                errorHandler(apiError: error, onErrorController: response.onErrorController)
-            }
+                    
+                    
+
+                case .failure(let error):
+                    showToast(.failure, message: "Error: " + error.displayString)
+                    errorHandler(apiError: error, onErrorController: response.onErrorController)
+                    appState = .idle
+                }
         }
     }
 
@@ -165,6 +499,8 @@ extension ContentView {
                 .fontWeight(.semibold)
         }
     }
+    
+    
 
     func newPIN() {
         WalletSdk.shared.execute(userToken: "", encryptionKey: "", challengeIds: ["ui_new_pin"])
@@ -180,6 +516,305 @@ extension ContentView {
 
     func restorePIN() {
         WalletSdk.shared.execute(userToken: "", encryptionKey: "", challengeIds: ["ui_restore_pin"])
+    }
+    
+
+    
+    func userLogin () async {
+        appState =  .loggingIn
+        await getSessionToken()
+        guard !userToken.isEmpty else { showToast(.failure, message: "User Token is Empty. Please register for an account"); return appState = .idle }
+        guard !encryptionKey.isEmpty else { showToast(.failure, message: "Encryption Key is Empty"); return }
+        currentScreen = .Home
+        appState = .idle
+    }
+    
+    func userRegistration () async {
+        appState = .regsitering
+        await createUser()
+        await getSessionToken()
+        await getChallengIdandCreateWallet()
+        guard !userToken.isEmpty else { showToast(.general, message: "User Token is Empty"); return }
+        guard !encryptionKey.isEmpty else { showToast(.general, message: "Encryption Key is Empty"); return }
+        guard !challengeId.isEmpty else { showToast(.general, message: "Challenge ID is Empty"); return }
+        executeChallenge(userToken: userToken, encryptionKey: encryptionKey, challengeId: challengeId)
+    }
+    
+    func createUser()async  {
+        // Define the API endpoint URL.
+        let apiUrl = URL(string: "https://api.circle.com/v1/w3s/users")!
+        // Define the request data as a dictionary.
+        let requestData: [String: Any] = [
+            "userId": userId
+        ]
+        // Convert the request data to JSON data.
+        do {
+            let jsonData = try JSONSerialization.data(withJSONObject: requestData, options: [])
+            // Create a URL request with the API URL.
+            var request = URLRequest(url: apiUrl)            
+            // Set the HTTP method to POST.
+            request.httpMethod = "POST"
+            // Set the request body with the JSON data.
+            request.httpBody = jsonData
+            // Set the Content-Type header to JSON.
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+            let (_,_) = try await URLSession.shared.data(for: request)
+        } catch {
+            // Handle JSON serialization error.
+            print("JSON Serialization Error: \(error.localizedDescription)")
+        }
+    }
+    
+    func getSessionToken() async {
+        let apiUrl = URL(string: "https://api.circle.com/v1/w3s/users/token")!
+        struct SessionToken: Decodable{
+            let userToken: String
+            let encryptionKey:String
+        }
+    
+        struct ResponseData: Decodable {
+             let data: SessionToken
+        }
+
+        // Define the request data as a dictionary.
+        let requestData: [String: Any] = [
+            "userId": userId
+        ]
+
+        // Convert the request data to JSON data.
+        do {
+            let jsonData = try JSONSerialization.data(withJSONObject: requestData, options: [])
+
+            // Create a URL request with the API URL.
+            var request = URLRequest(url: apiUrl)
+            // Set the HTTP method to POST.
+            request.httpMethod = "POST"
+            // Set the request body with the JSON data.
+            request.httpBody = jsonData
+            // Set the Content-Type header to JSON.
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+            let (data,_)=try await URLSession.shared.data(for: request)
+            let userData = try JSONDecoder().decode(ResponseData.self, from: data)
+            encryptionKey = userData.data.encryptionKey
+            userToken = userData.data.userToken
+        } catch {
+            // Handle JSON serialization error.
+            print("JSON Serialization Error: \(error.localizedDescription)")
+        }
+    }
+    func getChallengIdandCreateWallet() async {
+        let apiUrl = URL(string: "https://api.circle.com/v1/w3s/user/initialize")!
+
+    
+        struct ResponseData: Decodable {
+             let data: ChallengeId
+        }
+        let idempotencyKey = NSUUID().uuidString
+        // Define the request data as a dictionary.
+        let requestData: [String: Any] = [
+            "idempotencyKey": idempotencyKey,
+            "blockchains": [
+                "AVAX-FUJI"
+              ]
+        ]
+        do {
+            let jsonData = try JSONSerialization.data(withJSONObject: requestData, options: [])
+            // Create a URL request with the API URL.
+            var request = URLRequest(url: apiUrl)
+            // Set the HTTP method to POST.
+            request.httpMethod = "POST"
+            // Set the request body with the JSON data.
+            request.httpBody = jsonData
+            // Set the Content-Type header to JSON.
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+            request.setValue(userToken, forHTTPHeaderField: "X-User-Token")
+            
+            let (data,_)=try await URLSession.shared.data(for: request)
+            let userData = try JSONDecoder().decode(ResponseData.self, from: data)
+            challengeId = userData.data.challengeId
+
+        } catch {
+            // Handle JSON serialization error.
+            print("JSON Serialization Error: \(error.localizedDescription)")
+        }
+    }
+    func getWalletsList() async {
+        let apiUrl = URL(string: "https://api.circle.com/v1/w3s/wallets?blockchain=AVAX-FUJI&pageSize=10")!
+        struct ResponseData: Codable {
+            let data: Data
+             struct Data:Codable {
+                 let wallets:[Wallet]
+             }
+        }
+        do {
+            var request = URLRequest(url: apiUrl)
+            request.httpMethod = "GET"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            
+            request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+            request.setValue(userToken, forHTTPHeaderField: "X-User-Token")
+            
+            let (data,_)=try await URLSession.shared.data(for: request)
+            let walletData = try JSONDecoder().decode(ResponseData.self, from: data)
+            if(walletData.data.wallets.isEmpty){
+                currentScreen = .Login
+            }else{
+                wallet = walletData.data.wallets[0]
+            }
+        } catch {
+            // Handle JSON serialization error.
+            print("JSON Serialization Error: \(error.localizedDescription)")
+        }
+    }
+    
+    func getWalletBalances() async {
+        let apiUrl = URL(string: "https://api.circle.com/v1/w3s/wallets/\(wallet?.id ?? "")/balances")!
+        struct Balance: Codable {
+            let amount: String
+            let updateDate: String
+            let token: Token
+            struct Token: Codable {
+                let id: String
+                let blockchain: String
+                let name : String
+                let symbol: String
+                let decimals: Int
+                let isNative: Bool
+                let updateDate: String
+                let createDate: String
+            }
+        }
+        struct ResponseData: Codable {
+            let data: Data
+             struct Data:Codable {
+                 let tokenBalances:[Balance]
+             }
+        }
+        do {
+            var request = URLRequest(url: apiUrl)
+            request.httpMethod = "GET"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+            let (data,_)=try await URLSession.shared.data(for: request)
+            let tokenBalances = try JSONDecoder().decode(ResponseData.self, from: data)
+            for tokenBalanceData in tokenBalances.data.tokenBalances {
+                if(tokenBalanceData.token.name == "Avalanche-Fuji"){
+                    avaxBalance = tokenBalanceData.amount
+                }
+                if(tokenBalanceData.token.name == "USD Coin"){
+                    usdcBalance = tokenBalanceData.amount
+                }  
+            }
+        } catch {
+            // Handle JSON serialization error.
+            print("JSON Serialization Error: \(error.localizedDescription)")
+        }
+    }
+    
+    func containsOnlyNumbersAndDecimalPoint(_ text: String) -> Bool {
+        let regex = try! NSRegularExpression(pattern: "^[0-9.]*$")
+        return regex.firstMatch(in: text, options: [], range: NSRange(location: 0, length: text.utf16.count)) != nil
+    }
+    
+    func createChallengeToSendTokens() async {
+        let apiUrl = URL(string: "https://api.circle.com/v1/w3s/user/transactions/transfer")!
+        
+        let idempotencyKey = NSUUID().uuidString
+        let requestData: [String: Any] = [
+            "idempotencyKey" : idempotencyKey,
+            "destinationAddress": destinationAddress,
+            "amounts": [
+                sendAmount
+              ],
+            "tokenId": selectedOption.tokenId,
+            "walletId" : wallet?.id ?? "",
+            "feeLevel": "LOW"
+        ]
+        struct ResponseData: Decodable {
+            let data: ChallengeId
+        }
+        do {
+            let jsonData = try JSONSerialization.data(withJSONObject: requestData, options: [])
+            var request = URLRequest(url: apiUrl)            
+            request.httpMethod = "POST"
+            request.httpBody = jsonData
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+            request.setValue(userToken, forHTTPHeaderField: "X-User-Token")
+            
+            let (data,_)=try await URLSession.shared.data(for: request)
+            let challengeData = try JSONDecoder().decode(ResponseData.self, from: data)
+            challengeId = challengeData.data.challengeId
+        } catch {
+            // Handle JSON serialization error.
+            print("JSON Serialization Error: \(error.localizedDescription)")
+        }
+    }
+    
+    func getTransactionHistory() async {
+        let apiUrl = URL(string: "https://api.circle.com/v1/w3s/transactions?blockchain=AVAX-FUJI&custodyType=ENDUSER&operation=TRANSFER&pageSize=10")!
+        struct ResponseData: Decodable {
+            let data: Data
+             struct Data:Decodable {
+                 let transactions:[Transaction]
+             }
+        }
+        do {
+            // Create a URL request with the API URL.
+            var request = URLRequest(url: apiUrl)
+            
+            // Set the HTTP method to POST.
+            request.httpMethod = "GET"
+            
+            // Set the Content-Type header to JSON.
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            
+            request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+            request.setValue(userToken, forHTTPHeaderField: "X-User-Token")
+            
+            let (data,_)=try await URLSession.shared.data(for: request)
+            let transactionData = try JSONDecoder().decode(ResponseData.self, from: data)
+            let dateFormatter = DateFormatter( )
+            dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss'Z'"
+            dateFormatter.timeZone = TimeZone(identifier: "Asia/Singapore")
+            let outputDateFormatter = DateFormatter()
+            outputDateFormatter.dateFormat = "dd MMM yyyy HH:mm:ss"
+            dateFormatter.timeZone = TimeZone(identifier: "Asia/Singapore")
+            let formattedTransactionHistory = transactionData.data.transactions.map{
+                transaction in
+                var  createDateString  = ""
+                var updateDateString = ""
+    
+                if let createdAtDate = dateFormatter.date(from: transaction.createDate){
+                     createDateString = outputDateFormatter.string(from: createdAtDate)
+                }
+                if let updatedAtDate = dateFormatter.date(from: transaction.updateDate){
+                     updateDateString = outputDateFormatter.string (from: updatedAtDate)
+                }
+                
+                let updatedTransaction = Transaction(
+                    id: transaction.id
+                    ,amounts: transaction.amounts
+                    , sourceAddress: transaction.sourceAddress
+                    , state: transaction.state
+                    , updateDate: updateDateString
+                    , transactionType: transaction.transactionType
+                    , createDate: createDateString
+                    , destinationAddress :  transaction.destinationAddress
+                    , networkFee : transaction.networkFee
+                    , tokenId: transaction.tokenId
+                    , blockchain: transaction.blockchain
+                    )
+                return updatedTransaction
+            }
+            transactionHistory = formattedTransactionHistory            
+            } catch {
+            // Handle JSON serialization error.
+            print("JSON Serialization Error: \(error.localizedDescription)")
+        }
     }
 }
 
