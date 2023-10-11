@@ -147,24 +147,35 @@ struct ContentView: View {
                         registerButton
                         Spacer()
                     case .Home:
-                    Text("Avalanche FUJI TestNet").font(.title)
+                        Text("Avalanche FUJI TestNet").font(.title)
                         Text("Wallet Address \(wallet?.address ?? "No Address") ").font(.title2).onTapGesture {
                             UIPasteboard.general.string = wallet?.address ?? "No Address"
                             showToast(.success, message: "Address Copied")
                         }.bold()
                         Text("Token Balance").font(.body).bold()
-                        Text("USDC: \(usdcBalance)").font(.body)
-                        Text("AVAX-Fuji: \(avaxBalance)").font(.body)
+                        HStack {
+                            Image("avalanche-avax-logo").resizable().frame(width: 30,height: 30)
+                            Text("AVAX-Fuji: \(avaxBalance) AVAX").font(.body)
+                        }
+                        HStack {
+                            Image("usd-coin-usdc-logo").resizable().frame(width: 30,height: 30)
+                            Text("USDC: \(avaxBalance) AVAX").font(.body)
+                        }
                         HStack{
                             sendButton
                             transactionHistoryButton
                         }
-                        
                         logutButton
                     case .SendToken:
                         Text( "Send Tokens" ).font(.title2)
-                        Text("USDC Balance: \(usdcBalance) USDC").font(.body)
-                        Text("Fuji Avax Balance: \(avaxBalance) AVAX").font(.body)
+                    HStack {
+                        Image("avalanche-avax-logo").resizable().frame(width: 30,height: 30)
+                        Text("AVAX-Fuji: \(avaxBalance) AVAX").font(.body)
+                    }
+                    HStack {
+                        Image("usd-coin-usdc-logo").resizable().frame(width: 30,height: 30)
+                        Text("USDC: \(avaxBalance) AVAX").font(.body)
+                    }
                         Picker("Select which token to send", selection: $selectedOption) {
                                         ForEach(TokenOptions.allCases) { option in
                                             Text(String(describing: option))
