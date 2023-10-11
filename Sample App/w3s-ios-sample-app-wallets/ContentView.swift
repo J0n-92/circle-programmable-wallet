@@ -155,8 +155,11 @@ struct ContentView: View {
                         Text("Token Balance").font(.body).bold()
                         Text("USDC: \(usdcBalance)").font(.body)
                         Text("AVAX-Fuji: \(avaxBalance)").font(.body)
-                        sendButton
-                        transactionHistoryButton
+                        HStack{
+                            sendButton
+                            transactionHistoryButton
+                        }
+                        
                         logutButton
                     case .SendToken:
                         Text( "Send Tokens" ).font(.title2)
@@ -389,7 +392,7 @@ struct ContentView: View {
             }
             currentScreen = .Transactions
         } label: {
-            Text("View Transactions")
+            Text("Transactions")
                 .frame(maxWidth: .infinity)
         }
         .buttonStyle(.borderedProminent)
