@@ -37,6 +37,7 @@ enum AppState {
     case loggingIn
     case regsitering
     case sendingTokens
+    case retrieveBalance
 }
 
 enum Screens {
@@ -257,8 +258,12 @@ struct ContentView: View {
                 }
             }.gesture(DragGesture().onChanged({_ in
                 Task{
-                    if (currentScreen == .Home){
+                    if (currentScreen == .Home && appState == .idle){
+                        appState = .retrieveBalance
+                        showToast(.general, message: "Updating Wallet Balances")
                         await getWalletBalances()
+                        showToast(.success, message: "Balance Updated")
+                        appState = .idle
                     }
                 }    
             }))
