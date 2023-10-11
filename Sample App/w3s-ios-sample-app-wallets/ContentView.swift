@@ -156,7 +156,7 @@ struct ContentView: View {
                         }
                         HStack {
                             Image("usd-coin-usdc-logo").resizable().frame(width: 30,height: 30)
-                            Text("USDC: \(avaxBalance) AVAX").font(.body)
+                            Text("USDC: \(usdcBalance) USDC").font(.body)
                         }
                         HStack{
                             sendButton
@@ -171,7 +171,7 @@ struct ContentView: View {
                     }
                     HStack {
                         Image("usd-coin-usdc-logo").resizable().frame(width: 30,height: 30)
-                        Text("USDC: \(avaxBalance) AVAX").font(.body)
+                        Text("USDC: \(usdcBalance) USDC").font(.body)
                     }
                         Picker("Select which token to send", selection: $selectedOption) {
                                         ForEach(TokenOptions.allCases) { option in
