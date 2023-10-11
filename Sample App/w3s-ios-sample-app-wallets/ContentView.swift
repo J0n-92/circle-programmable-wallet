@@ -247,7 +247,13 @@ struct ContentView: View {
                         }
                         transactionBackButton       
                 }
-            }
+            }.gesture(DragGesture().onChanged({_ in
+                Task{
+                    if (currentScreen == .Home){
+                        await getWalletBalances()
+                    }
+                }    
+            }))
             versionText
         }
         .scrollContentBackground(.hidden)
@@ -467,6 +473,7 @@ extension ContentView {
                         currentScreen = .Home
                         if ( currentScreen == .SendToken ){
                             sendAmount = "0"
+                            destinationAddress = ""
                         }
                     }
 
