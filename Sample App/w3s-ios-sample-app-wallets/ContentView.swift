@@ -133,10 +133,7 @@ struct ContentView: View {
     
     var body: some View {
         VStack {
-            HStack {
-                Image("58")
-                Text("Circle").font(.title)
-            }
+        Image("circle-logo")
         List {
                 switch  currentScreen{
                     case .Login:
