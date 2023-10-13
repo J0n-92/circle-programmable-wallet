@@ -145,35 +145,43 @@ struct ContentView: View {
                         registerButton
                         Spacer()
                     case .Home:
-                        Text("Avalanche FUJI TestNet").font(.title)
-                        Text("Wallet Address \(wallet?.address ?? "No Address") ").font(.title2).onTapGesture {
-                            UIPasteboard.general.string = wallet?.address ?? "No Address"
-                            showToast(.success, message: "Address Copied")
-                        }.bold()
-                        Text("Token Balance").font(.body).bold()
                         HStack {
-                            Image("avalanche-avax-logo").resizable().frame(width: 30,height: 30)
-                            Text("AVAX-Fuji: \(avaxBalance) AVAX").font(.body)
-                        }
+                            Image("avalanche-avax-logo").resizable().frame(width: 50,height: 50)
+                            Text("Avalanche FUJI").font(.title)
+                        }.listRowSeparator(.hidden)
+                        HStack{
+                            Text("My Wallet Address").font(.title2).bold()
+                            Image("copy_icon").onTapGesture {
+                                UIPasteboard.general.string = wallet?.address ?? "No Address"
+                                showToast(.success, message: "Address Copied")
+                            }
+                        }.listRowSeparator(.hidden)
+                        Text("Token Balance").font(.title2).bold().listRowSeparator(.hidden)
                         HStack {
-                            Image("usd-coin-usdc-logo").resizable().frame(width: 30,height: 30)
-                            Text("USDC: \(usdcBalance) USDC").font(.body)
-                        }
+                            Image("avalanche-avax-logo").resizable().frame(width: 40,height: 40)
+                            Text("AVAX-Fuji: \(avaxBalance) AVAX").font(.title3)
+                        }.listRowSeparator(.hidden)
+                        HStack {
+                            Image("usd-coin-usdc-logo").resizable().frame(width: 40,height: 40)
+                            Text("USDC: \(usdcBalance) USDC").font(.title3)
+                        }.listRowSeparator(.hidden)
+                        Spacer().listRowSeparator(.hidden)
                         HStack{
                             sendButton
                             transactionHistoryButton
-                        }
-                        logutButton
+                        }.padding(EdgeInsets(top: 100, leading: 0, bottom: 0,trailing:0))
+                        
+                        logoutButton
                     case .SendToken:
                         Text( "Send Tokens" ).font(.title2)
-                    HStack {
-                        Image("avalanche-avax-logo").resizable().frame(width: 30,height: 30)
-                        Text("AVAX-Fuji: \(avaxBalance) AVAX").font(.body)
-                    }
-                    HStack {
-                        Image("usd-coin-usdc-logo").resizable().frame(width: 30,height: 30)
-                        Text("USDC: \(usdcBalance) USDC").font(.body)
-                    }
+                        HStack {
+                            Image("avalanche-avax-logo").resizable().frame(width: 40,height: 40)
+                            Text("AVAX-Fuji: \(avaxBalance) AVAX").font(.title3)
+                        }.listRowSeparator(.hidden)
+                        HStack {
+                            Image("usd-coin-usdc-logo").resizable().frame(width: 40,height: 40)
+                            Text("USDC: \(usdcBalance) USDC").font(.title3)
+                        }.listRowSeparator(.hidden)
                         Picker("Select which token to send", selection: $selectedOption) {
                                         ForEach(TokenOptions.allCases) { option in
                                             Text(String(describing: option))
@@ -183,8 +191,11 @@ struct ContentView: View {
                         sectionInputField("Destination Address", binding: $destinationAddress )
                         sectionInputField("Amount", binding: $sendAmount )
                         sendTokensButton
-                        homeButton
-                        logutButton
+                        HStack{
+                            homeButton
+                            logoutButton
+                        }.listRowSeparator(.hidden)
+
                     case .Transactions:
                         Text( "Transactions" ).font(.title2)
                         List(transactionHistory){
@@ -199,15 +210,19 @@ struct ContentView: View {
                                         Text(transaction.state).font(.body).foregroundColor(textColor)
                                     }.padding(EdgeInsets(top: 0, leading: 0, bottom: 0,trailing:100))
                                     
-                                    Text(transaction.amounts[0]).font(.body).alignmentGuide(.trailing) { _ in 0 }
+                                    Text(transaction.amounts[0]).font(.body).alignmentGuide(.leading) { _ in 0 }
                                 }
                             }.onTapGesture {
                                 selectedTransaction = transaction
                                 currentScreen = .Transction
                             }
-                        }.frame(height: 500)
-                        homeButton
-                        logutButton
+                        }.frame(height: 400)
+                        Spacer().listRowSeparator(.hidden)
+                        HStack{
+                            homeButton
+                            logoutButton
+                        }.listRowSeparator(.hidden)
+                            
                     case .Transction:
                         Text( "View Transaction" ).font(.title2)
                         ZStack{
@@ -254,6 +269,7 @@ struct ContentView: View {
                                 .stroke(Color.black, lineWidth: 2) // Border color and width
                                 .padding(5) // Adjust the padding to control the border distance
                         }
+                        Spacer().listRowSeparator(.hidden)
                         transactionBackButton       
                 }
             }.gesture(DragGesture().onChanged({_ in
@@ -347,7 +363,7 @@ struct ContentView: View {
         .buttonStyle(.borderedProminent)
         .listRowSeparator(.hidden)
     }
-    var logutButton: some View {
+    var logoutButton: some View {
         Button {
             currentScreen = .Login
              userToken = ""
