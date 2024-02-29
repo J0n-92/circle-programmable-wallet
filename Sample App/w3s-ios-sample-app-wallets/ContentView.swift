@@ -49,15 +49,15 @@ enum Screens {
 }
 
 enum TokenOptions: CaseIterable, Identifiable, CustomStringConvertible{
-    case FujiAvax
+    case ETHSEPOLIA
     case USDC
 
     var id: Self { self }
     
     var description: String{
         switch self {
-        case .FujiAvax:
-            return "Fuji AVAX"
+        case .ETHSEPOLIA:
+            return "ETH-Sepolia"
         case .USDC:
             return "USDC"
         }
@@ -65,16 +65,16 @@ enum TokenOptions: CaseIterable, Identifiable, CustomStringConvertible{
     
     var tokenId:String{
         switch self {
-        case .FujiAvax:
-            return FujiAvaxTokenAddress
+        case .ETHSEPOLIA:
+            return EthSepoliaAddress
         case .USDC:
             return UsdcTokenAddress
         }
     }
 }
 
-let FujiAvaxTokenAddress = "87a5c41c-fcb4-5973-8c66-72e2ed851ab8"
 let UsdcTokenAddress = "ff47a560-9795-5b7c-adfc-8f47dad9e06a"
+let EthSepoliaAddress = "979869da-9115-5f7d-917d-12d434e56ae7"
 
 struct Transaction: Identifiable, Decodable{
     let id: String
@@ -126,7 +126,7 @@ struct ContentView: View {
     @State var wallet: Wallet? = nil
     @State var appState : AppState = .idle
     @State var usdcBalance: String =  "0"
-    @State var avaxBalance: String =  "0"
+    @State var ethBalance: String =  "0"
     @State var sendAmount: String  = "0"
     @State var destinationAddress: String = ""
     @State var transactionHistory: [Transaction] = [ ]
@@ -146,8 +146,8 @@ struct ContentView: View {
                         Spacer()
                     case .Home:
                         HStack {
-                            Image("avalanche-avax-logo").resizable().frame(width: 50,height: 50)
-                            Text("Avalanche FUJI").font(.title)
+                            Image("eth_logo").resizable().frame(width: 50,height: 50)
+                            Text("Ethereum-Sepolia").font(.title)
                         }.listRowSeparator(.hidden)
                         HStack{
                             Text("My Wallet Address").font(.title2).bold()
@@ -158,8 +158,8 @@ struct ContentView: View {
                         }.listRowSeparator(.hidden)
                         Text("Token Balance").font(.title2).bold().listRowSeparator(.hidden)
                         HStack {
-                            Image("avalanche-avax-logo").resizable().frame(width: 40,height: 40)
-                            Text("AVAX-Fuji: \(avaxBalance) AVAX").font(.title3)
+                            Image("eth_logo").resizable().frame(width: 40,height: 40)
+                            Text("ETH-Sepolia: \(ethBalance) ETH-SEPOLIA").font(.title3)
                         }.listRowSeparator(.hidden)
                         HStack {
                             Image("usd-coin-usdc-logo").resizable().frame(width: 40,height: 40)
@@ -175,8 +175,8 @@ struct ContentView: View {
                     case .SendToken:
                         Text( "Send Tokens" ).font(.title2)
                         HStack {
-                            Image("avalanche-avax-logo").resizable().frame(width: 40,height: 40)
-                            Text("AVAX-Fuji: \(avaxBalance) AVAX").font(.title3)
+                            Image("eth_logo").resizable().frame(width: 40,height: 40)
+                            Text("ETH-Sepolia: \(ethBalance) ETH-SEPOLIA").font(.title3)
                         }.listRowSeparator(.hidden)
                         HStack {
                             Image("usd-coin-usdc-logo").resizable().frame(width: 40,height: 40)
@@ -204,7 +204,7 @@ struct ContentView: View {
                                 HStack{
                                     VStack(alignment: .leading){
                                         Text(transaction.transactionType).font(.body)
-                                        let token = transaction.tokenId == FujiAvaxTokenAddress ? "Avalanche-Fuji" : "USDC"
+                                        let token = transaction.tokenId == EthSepoliaAddress ? "ETH-Sepolia" : "USDC"
                                         Text(token).font(.body)
                                         let textColor = transaction.state == "COMPLETE" ? Color.green : Color.red
                                         Text(transaction.state).font(.body).foregroundColor(textColor)
@@ -247,7 +247,7 @@ struct ContentView: View {
                                     Text(selectedTransaction.transactionType).font(.body)
                                 }
                                 HStack{
-                                    let token = selectedTransaction.tokenId == FujiAvaxTokenAddress ? "Avalanche-Fuji" : "USDC"
+                                    let token = selectedTransaction.tokenId == EthSepoliaAddress ? "ETH-Sepolia" : "USDC"
                                     Text("Token: ").bold().font(.body)
                                     Text(token).font(.body)
                                 }
@@ -369,7 +369,7 @@ struct ContentView: View {
              userToken = ""
             encryptionKey = ""
             challengeId = ""
-            avaxBalance = "0"
+            ethBalance = "0"
             usdcBalance = "0"
             wallet = nil
             userId = ""
@@ -441,12 +441,12 @@ struct ContentView: View {
             guard !sendAmount.isEmpty else { showToast(.general, message: "send amount is Empty"); return }
             let sendAmountFloat = Float(sendAmount) ?? 0
             let usdcBalanceFloat = Float(usdcBalance) ?? 0
-            let avaxBalanceFloat = Float(avaxBalance) ?? 0
+            let ethBalanceFloat = Float(ethBalance) ?? 0
             if ( selectedOption == .USDC ) {
                 guard sendAmountFloat<usdcBalanceFloat else { showToast(.failure, message: "Insufficient Balance"); return }
             }
-            if ( selectedOption == .FujiAvax ) {
-                let allowedTransferBalance = avaxBalanceFloat * 0.9
+            if ( selectedOption == .ETHSEPOLIA ) {
+                let allowedTransferBalance = ethBalanceFloat * 0.9
                 guard sendAmountFloat < allowedTransferBalance else { showToast(.failure, message: "Insufficient Balance"); return }
             }
             appState = .sendingTokens
@@ -656,7 +656,7 @@ extension ContentView {
         let requestData: [String: Any] = [
             "idempotencyKey": idempotencyKey,
             "blockchains": [
-                "AVAX-FUJI"
+                "ETH-SEPOLIA"
               ]
         ]
         do {
@@ -682,7 +682,7 @@ extension ContentView {
         }
     }
     func getWalletsList() async {
-        let apiUrl = URL(string: "https://api.circle.com/v1/w3s/wallets?blockchain=AVAX-FUJI&pageSize=10")!
+        let apiUrl = URL(string: "https://api.circle.com/v1/w3s/wallets?blockchain=ETH-SEPOLIA&pageSize=10")!
         struct ResponseData: Codable {
             let data: Data
              struct Data:Codable {
@@ -741,8 +741,8 @@ extension ContentView {
             let (data,_)=try await URLSession.shared.data(for: request)
             let tokenBalances = try JSONDecoder().decode(ResponseData.self, from: data)
             for tokenBalanceData in tokenBalances.data.tokenBalances {
-                if(tokenBalanceData.token.name == "Avalanche-Fuji"){
-                    avaxBalance = tokenBalanceData.amount
+                if(tokenBalanceData.token.name == "Ethereum-Sepolia"){
+                    ethBalance = tokenBalanceData.amount
                 }
                 if(tokenBalanceData.token.name == "USD Coin"){
                     usdcBalance = tokenBalanceData.amount
@@ -795,7 +795,7 @@ extension ContentView {
     }
     
     func getTransactionHistory() async {
-        let apiUrl = URL(string: "https://api.circle.com/v1/w3s/transactions?blockchain=AVAX-FUJI&custodyType=ENDUSER&operation=TRANSFER&pageSize=10")!
+        let apiUrl = URL(string: "https://api.circle.com/v1/w3s/transactions?blockchain=ETH-SEPOLIA&custodyType=ENDUSER&operation=TRANSFER&pageSize=10")!
         struct ResponseData: Decodable {
             let data: Data
              struct Data:Decodable {
