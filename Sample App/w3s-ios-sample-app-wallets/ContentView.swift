@@ -73,7 +73,7 @@ enum TokenOptions: CaseIterable, Identifiable, CustomStringConvertible{
     }
 }
 
-let UsdcTokenAddress = "ff47a560-9795-5b7c-adfc-8f47dad9e06a"
+let UsdcTokenAddress = "5797fbd6-3795-519d-84ca-ec4c5f80c3b1"
 let EthSepoliaAddress = "979869da-9115-5f7d-917d-12d434e56ae7"
 
 struct Transaction: Identifiable, Decodable{
@@ -744,7 +744,7 @@ extension ContentView {
                 if(tokenBalanceData.token.name == "Ethereum-Sepolia"){
                     ethBalance = tokenBalanceData.amount
                 }
-                if(tokenBalanceData.token.name == "USD Coin"){
+                if(tokenBalanceData.token.name == "USDC"){
                     usdcBalance = tokenBalanceData.amount
                 }  
             }
